@@ -18,6 +18,7 @@ export default function StandupDetail() {
   const {
     selectedStandup, setSelectedStandup,
     setActionItems, setDecisions, setTicketLinks,
+    setYoutrackIssues,
     settings, loading, setLoading, setError, errors
   } = useAppStore();
 
@@ -35,6 +36,7 @@ export default function StandupDetail() {
   useEffect(() => {
     async function load() {
       setLoading('detail', true);
+      setYoutrackIssues([]); // clear stale issues from previous standup
       try {
         const res = await getStandup(id);
         setSelectedStandup(res.data.standup);
@@ -122,7 +124,7 @@ export default function StandupDetail() {
             <DecisionList standupId={id} />
           </div>
           <div style={{ width: 320 }}>
-            <TicketPanel project={youtrackProject} />
+            <TicketPanel key={youtrackProject || '_none'} project={youtrackProject} />
           </div>
         </div>
       </div>
