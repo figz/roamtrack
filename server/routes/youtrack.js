@@ -88,8 +88,20 @@ router.post('/update', async (req, res, next) => {
       if (!itemEntry) continue;
 
       const label = link.itemType === 'ActionItem' ? 'Action Item' : 'Decision';
-      const assigneePart = link.itemType === 'ActionItem' && itemEntry.item.assignee
-        ? `\nAssignee: ${itemEntry.item.assignee}` : '';
+      let assigneePart = '';
+      if (link.itemType === 'ActionItem' && itemEntry.item.assignee) {
+        const assigneeName = itemEntry.item.assignee.trim().toLowerCase();
+        const participant = (standup.participants || []).find(p =>
+          (p.name || '').trim().toLowerCase().includes(assigneeName) ||
+          assigneeName.includes((p.name || '').trim().toLowerCase())
+        );
+        const login = participant?.email
+          ? await ytService.findUserLoginByEmail(participant.email)
+          : null;
+        assigneePart = login
+          ? `\nAssignee: @${login}`
+          : `\nAssignee: ${itemEntry.item.assignee}`;
+      }
       const text = `[RoamTrack] ${label}: ${itemEntry.item.text}${assigneePart}\nSource: ${standup.eventName}, ${standup.date ? standup.date.toISOString().split('T')[0] : 'unknown date'}`;
 
       try {

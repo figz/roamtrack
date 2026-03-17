@@ -74,6 +74,23 @@ async function getIssue(ticketId) {
   return response.data;
 }
 
+async function findUserLoginByEmail(email) {
+  if (!email) return null;
+  try {
+    const res = await ytClient.get('/users', {
+      params: { query: email, fields: 'id,login,fullName,email', $top: 5 }
+    });
+    const users = res.data;
+    if (!users.length) return null;
+    // Prefer exact email match
+    const emailLower = email.trim().toLowerCase();
+    const exact = users.find(u => (u.email || '').toLowerCase() === emailLower);
+    return (exact || users[0]).login || null;
+  } catch {
+    return null;
+  }
+}
+
 async function postComment(ticketId, text) {
   const response = await ytClient.post(`/issues/${ticketId}/comments`, { text });
   return response.data;
@@ -96,4 +113,4 @@ async function getAllBoardIssues(boardIdOrUrl) {
   return issues;
 }
 
-module.exports = { getIssuesByBoard, getAllBoardIssues, getIssue, postComment };
+module.exports = { getIssuesByBoard, getAllBoardIssues, getIssue, findUserLoginByEmail, postComment };
