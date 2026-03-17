@@ -79,10 +79,10 @@ async function getAllBoardIssues(boardIdOrUrl) {
     params: { fields: 'id,name' }
   });
   const board = boardRes.data;
-  const q = `Board: {${board.name}} #Unresolved`;
+  const q = `Board: {${board.name}}`;
   console.log(`[youtrack] getAllBoardIssues query: ${q}`);
   const issuesRes = await ytClient.get('/issues', {
-    params: { fields: 'id,idReadable,summary,updated', query: q, $top: 500 }
+    params: { fields: 'id,idReadable,summary,updated', query: q, $top: 500, $orderBy: 'updated desc' }
   });
   const issues = issuesRes.data;
   console.log(`[youtrack] getAllBoardIssues returned ${issues.length} issues`);
