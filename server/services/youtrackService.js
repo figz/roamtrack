@@ -18,7 +18,6 @@ function parseBoardId(boardIdOrUrl) {
 async function getIssuesByBoard(boardIdOrUrl) {
   const boardId = parseBoardId(boardIdOrUrl);
 
-  // Get board details to find current sprint
   const boardRes = await ytClient.get(`/agiles/${boardId}`, {
     params: { fields: 'id,name,currentSprint(id,name)' }
   });
@@ -29,28 +28,26 @@ async function getIssuesByBoard(boardIdOrUrl) {
   let issues;
   try {
     if (sprintId) {
-      const params = { fields: 'id,idReadable,summary,updated', $top: 100 };
-      const issuesRes = await ytClient.get(`/agiles/${boardId}/sprints/${sprintId}/issues`, { params });
+      const issuesRes = await ytClient.get(`/agiles/${boardId}/sprints/${sprintId}/issues`, {
+        params: { fields: 'id,idReadable,summary,updated', $top: 500 }
+      });
       issues = issuesRes.data;
       console.log(`[youtrack] sprint "${board.currentSprint.name}" returned ${issues.length} issues`);
     } else {
       const q = `Board: {${board.name}} #Unresolved`;
-      console.log(`[youtrack] no sprint, querying: ${q}`);
       const issuesRes = await ytClient.get('/issues', {
-        params: { fields: 'id,idReadable,summary,updated', query: q, $top: 100 }
+        params: { fields: 'id,idReadable,summary,updated', query: q, $top: 500 }
       });
       issues = issuesRes.data;
-      console.log(`[youtrack] query returned ${issues.length} issues`);
+      console.log(`[youtrack] board query returned ${issues.length} issues`);
     }
   } catch (err) {
     console.error(`[youtrack] fetch error:`, err.response?.data || err.message);
     throw err;
   }
 
-  // Sort by most recently updated
   issues.sort((a, b) => (b.updated || 0) - (a.updated || 0));
 
-  // Add web URL to each issue
   const webBase = (process.env.YOUTRACK_BASE_URL || '').replace(/\/api\/?$/, '');
   issues.forEach(issue => {
     const id = issue.idReadable || issue.id;
