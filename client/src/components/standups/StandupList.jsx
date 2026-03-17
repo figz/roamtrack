@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useStandups } from '../../hooks/useStandups';
 import StandupCard from './StandupCard';
 import LoadingSpinner from '../shared/LoadingSpinner';
@@ -38,6 +38,7 @@ export default function StandupList() {
   const loading = useAppStore(s => s.loading);
   const errors = useAppStore(s => s.errors);
   const [selectedDate, setSelectedDate] = useState(todayStr());
+  const dateInputRef = useRef(null);
 
   useEffect(() => { fetchStandups(); }, [fetchStandups]);
 
@@ -58,19 +59,21 @@ export default function StandupList() {
       {/* Date navigator */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
         <button onClick={() => setSelectedDate(s => shiftDate(s, -1))} style={navBtn}>&#8592;</button>
-        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-          <span style={{ fontSize: 15, fontWeight: 600, color: '#3f51b5', minWidth: 160, textAlign: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span
+            onClick={() => dateInputRef.current?.showPicker()}
+            style={{ fontSize: 15, fontWeight: 600, color: '#3f51b5', minWidth: 160, textAlign: 'center', cursor: 'pointer', userSelect: 'none' }}
+            title="Click to pick a date"
+          >
             {formatLabel(selectedDate)}
           </span>
           <input
+            ref={dateInputRef}
             type="date"
             value={selectedDate}
             max={todayStr()}
             onChange={e => e.target.value && setSelectedDate(e.target.value)}
-            style={{
-              position: 'absolute', left: 0, top: 0, width: '100%', height: '100%',
-              opacity: 0, cursor: 'pointer'
-            }}
+            style={{ width: 0, height: 0, opacity: 0, border: 'none', padding: 0, position: 'absolute' }}
           />
         </div>
         <button
