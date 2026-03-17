@@ -2,7 +2,9 @@ const express = require('express');
 const cors = require('cors');
 const connectDB = require('./config/db');
 const errorHandler = require('./middleware/errorHandler');
+const requireAuth = require('./middleware/requireAuth');
 
+const { router: authRoutes } = require('./routes/auth');
 const standupRoutes = require('./routes/standups');
 const actionItemRoutes = require('./routes/actionItems');
 const decisionRoutes = require('./routes/decisions');
@@ -23,6 +25,8 @@ app.use(async (req, res, next) => {
   }
 });
 
+app.use('/api/auth', authRoutes);
+app.use('/api', requireAuth);
 app.use('/api/standups', standupRoutes);
 app.use('/api/action-items', actionItemRoutes);
 app.use('/api/decisions', decisionRoutes);
