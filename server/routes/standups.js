@@ -6,23 +6,53 @@ const Decision = require('../models/Decision');
 const TicketLink = require('../models/TicketLink');
 const Settings = require('../models/Settings');
 const roamService = require('../services/roamService');
+const ytService = require('../services/youtrackService');
 
-const TICKET_PATTERN = /\b[A-Za-z]{2,10}-\d+\b/g;
+const FULL_TICKET_PATTERN = /\b[A-Za-z]{2,10}-\d+\b/g;
+const NUMBER_PATTERN = /\b\d{3,6}\b/g;
 
-async function autoLinkTickets(itemId, itemType, text) {
-  const rawMatches = (text || '').match(TICKET_PATTERN) || [];
-  const matches = rawMatches.map(m => m.toUpperCase());
-  for (const ticketId of matches) {
+// Build a map of { "4172": "LFG-4172" } from a list of YouTrack issues
+function buildNumberMap(issues) {
+  const map = {};
+  for (const issue of (issues || [])) {
+    const id = issue.idReadable || issue.id;
+    if (!id) continue;
+    const num = id.split('-').pop();
+    if (num) map[num] = id;
+  }
+  console.log(`[buildNumberMap] built map with ${Object.keys(map).length} entries, sample:`, Object.entries(map).slice(0, 5));
+  return map;
+}
+
+async function autoLinkTickets(itemId, itemType, text, numberMap = {}) {
+  const matched = new Set();
+
+  // Match full ticket IDs (e.g. LFG-4172)
+  const fullMatches = (text || '').match(FULL_TICKET_PATTERN) || [];
+  fullMatches.map(m => m.toUpperCase()).forEach(id => matched.add(id));
+
+  // Match bare numbers against the board's issue number map (e.g. "4172" → "LFG-4172")
+  const numbers = (text || '').match(NUMBER_PATTERN) || [];
+  console.log(`[autoLink] text: "${text?.slice(0, 80)}"`);
+  console.log(`[autoLink] fullMatches: ${JSON.stringify(fullMatches)}, numbers: ${JSON.stringify(numbers)}`);
+  console.log(`[autoLink] numberMap size: ${Object.keys(numberMap).length}, sample keys: ${Object.keys(numberMap).slice(0, 5)}`);
+  for (const num of numbers) {
+    if (numberMap[num]) matched.add(numberMap[num]);
+  }
+  console.log(`[autoLink] matched: ${JSON.stringify([...matched])}`);
+
+  const webBase = (process.env.YOUTRACK_BASE_URL || '').replace(/\/api\/?$/, '');
+  for (const ticketId of matched) {
     await TicketLink.findOneAndUpdate(
       { itemId, ticketId },
-      { $set: { itemId, itemType, ticketId, linkType: 'auto' } },
+      { $set: { itemId, itemType, ticketId, linkType: 'auto', ticketUrl: `${webBase}/issue/${ticketId}` } },
       { upsert: true, new: true }
     );
   }
-  if (matches.length > 0 && itemType === 'ActionItem') {
+  if (matched.size > 0 && itemType === 'ActionItem') {
     await ActionItem.findByIdAndUpdate(itemId, { autoMatched: true });
   }
-  return matches;
+  return [...matched];
 }
 
 // GET /api/standups/debug — shows raw Roam API response for troubleshooting
@@ -125,6 +155,21 @@ router.post('/:id/pull', async (req, res, next) => {
       settings.transcriptPrompt
     );
 
+    // Build number→ticketId map from the mapped YouTrack board
+    let numberMap = {};
+    const mapping = (settings.dsuMappings || []).find(
+      m => m.name.trim().toLowerCase() === (standup.eventName || '').trim().toLowerCase()
+    );
+    if (mapping?.youtrackProject) {
+      try {
+        const issues = await ytService.getAllBoardIssues(mapping.youtrackProject);
+        numberMap = buildNumberMap(issues);
+        console.log(`[pull] loaded ${issues.length} issues for number matching`);
+      } catch (err) {
+        console.warn('[pull] could not load YouTrack issues for auto-match:', err.message);
+      }
+    }
+
     // Clear existing roam-sourced items and their links
     const oldItems = await ActionItem.find({ standupId: standup._id, source: 'roam' });
     const oldDecisions = await Decision.find({ standupId: standup._id, source: 'roam' });
@@ -143,7 +188,7 @@ router.post('/:id/pull', async (req, res, next) => {
         assignee: ai.assignee || '',
         source: 'roam'
       });
-      await autoLinkTickets(item._id, 'ActionItem', item.text);
+      await autoLinkTickets(item._id, 'ActionItem', item.text, numberMap);
       createdActionItems.push(item);
     }
 
@@ -153,7 +198,7 @@ router.post('/:id/pull', async (req, res, next) => {
         text: d.text || '',
         source: 'roam'
       });
-      await autoLinkTickets(item._id, 'Decision', item.text);
+      await autoLinkTickets(item._id, 'Decision', item.text, numberMap);
       createdDecisions.push(item);
     }
 

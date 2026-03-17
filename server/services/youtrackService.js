@@ -50,6 +50,13 @@ async function getIssuesByBoard(boardIdOrUrl) {
   // Sort by most recently updated
   issues.sort((a, b) => (b.updated || 0) - (a.updated || 0));
 
+  // Add web URL to each issue
+  const webBase = (process.env.YOUTRACK_BASE_URL || '').replace(/\/api\/?$/, '');
+  issues.forEach(issue => {
+    const id = issue.idReadable || issue.id;
+    if (id) issue.webUrl = `${webBase}/issue/${id}`;
+  });
+
   return issues;
 }
 
@@ -65,4 +72,21 @@ async function postComment(ticketId, text) {
   return response.data;
 }
 
-module.exports = { getIssuesByBoard, getIssue, postComment };
+// Fetch ALL unresolved issues from a board (not just current sprint) — used for auto-matching
+async function getAllBoardIssues(boardIdOrUrl) {
+  const boardId = parseBoardId(boardIdOrUrl);
+  const boardRes = await ytClient.get(`/agiles/${boardId}`, {
+    params: { fields: 'id,name' }
+  });
+  const board = boardRes.data;
+  const q = `Board: {${board.name}} #Unresolved`;
+  console.log(`[youtrack] getAllBoardIssues query: ${q}`);
+  const issuesRes = await ytClient.get('/issues', {
+    params: { fields: 'id,idReadable,summary,updated', query: q, $top: 500 }
+  });
+  const issues = issuesRes.data;
+  console.log(`[youtrack] getAllBoardIssues returned ${issues.length} issues`);
+  return issues;
+}
+
+module.exports = { getIssuesByBoard, getAllBoardIssues, getIssue, postComment };

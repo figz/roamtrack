@@ -77,7 +77,11 @@ export default function ActionItemRow({ item, index }) {
                   <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
                     <Badge type={item.source} label={item.source} />
                     {links.map(l => (
-                      <Badge key={l._id} type={l.linkType} label={`${l.ticketId} (${l.linkType})`} />
+                      l.ticketUrl
+                        ? <a key={l._id} href={l.ticketUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
+                            <Badge type={l.linkType} label={`${l.ticketId} (${l.linkType})`} />
+                          </a>
+                        : <Badge key={l._id} type={l.linkType} label={`${l.ticketId} (${l.linkType})`} />
                     ))}
                   </div>
                 </div>

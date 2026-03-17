@@ -29,12 +29,16 @@ export default function TicketCard({ issue }) {
             transition: 'all 0.15s'
           }}
         >
-          <div style={{ fontSize: 13, fontWeight: 600, color: '#3f51b5', marginBottom: 4 }}>
-            {ticketId}
-          </div>
-          <div style={{ fontSize: 13, color: '#424242', marginBottom: 8 }}>
-            {issue.summary}
-          </div>
+          {issue.webUrl
+            ? <a href={issue.webUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: '#3f51b5', marginBottom: 4 }}>{ticketId}</div>
+                <div style={{ fontSize: 13, color: '#424242', marginBottom: 8 }}>{issue.summary}</div>
+              </a>
+            : <>
+                <div style={{ fontSize: 13, fontWeight: 600, color: '#3f51b5', marginBottom: 4 }}>{ticketId}</div>
+                <div style={{ fontSize: 13, color: '#424242', marginBottom: 8 }}>{issue.summary}</div>
+              </>
+          }
           {linkedItems.length > 0 && (
             <div style={{ borderTop: '1px solid #f0f0f0', paddingTop: 8 }}>
               {linkedItems.map(l => (
