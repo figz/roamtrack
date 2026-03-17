@@ -27,20 +27,15 @@ async function getIssuesByBoard(boardIdOrUrl) {
 
   let issues;
   try {
-    if (sprintId) {
-      const issuesRes = await ytClient.get(`/agiles/${boardId}/sprints/${sprintId}/issues`, {
-        params: { fields: 'id,idReadable,summary,updated', $top: 500 }
-      });
-      issues = issuesRes.data;
-      console.log(`[youtrack] sprint "${board.currentSprint.name}" returned ${issues.length} issues`);
-    } else {
-      const q = `Board: {${board.name}} #Unresolved`;
-      const issuesRes = await ytClient.get('/issues', {
-        params: { fields: 'id,idReadable,summary,updated', query: q, $top: 500 }
-      });
-      issues = issuesRes.data;
-      console.log(`[youtrack] board query returned ${issues.length} issues`);
-    }
+    const q = sprintId
+      ? `Board: {${board.name}} Sprint: {${board.currentSprint.name}}`
+      : `Board: {${board.name}} #Unresolved`;
+    console.log(`[youtrack] querying issues: ${q}`);
+    const issuesRes = await ytClient.get('/issues', {
+      params: { fields: 'id,idReadable,summary,updated', query: q, $top: 500 }
+    });
+    issues = issuesRes.data;
+    console.log(`[youtrack] query returned ${issues.length} issues`);
   } catch (err) {
     console.error(`[youtrack] fetch error:`, err.response?.data || err.message);
     throw err;
