@@ -85,8 +85,9 @@ router.post('/sync', async (req, res, next) => {
     if (!settings) settings = await Settings.create({ _id: 'singleton' });
 
     const dsuNames = (settings.dsuMappings || []).map(m => m.name);
-    console.log('[sync] configured DSU names:', dsuNames);
-    const transcripts = await roamService.listTodayTranscripts();
+    const { date } = req.body; // optional 'YYYY-MM-DD'
+    console.log('[sync] configured DSU names:', dsuNames, '| date:', date || 'today');
+    const transcripts = await roamService.listTodayTranscripts(date);
     console.log('[sync] transcripts from Roam:', transcripts.length, transcripts.map(t => t.eventName));
     const filtered = roamService.filterByDsuNames(transcripts, dsuNames);
     console.log('[sync] matched:', filtered.length);

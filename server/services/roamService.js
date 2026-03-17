@@ -7,27 +7,30 @@ const roamClient = axios.create({
   }
 });
 
-function getTodayEasternBoundaries() {
-  const now = new Date();
-  const formatter = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'America/New_York',
-    year: 'numeric', month: '2-digit', day: '2-digit'
-  });
-  const parts = formatter.formatToParts(now);
-  const year = parts.find(p => p.type === 'year').value;
-  const month = parts.find(p => p.type === 'month').value;
-  const day = parts.find(p => p.type === 'day').value;
+// dateStr: optional 'YYYY-MM-DD' in Eastern time; defaults to today ET
+function getEasternDayBoundaries(dateStr) {
+  let year, month, day;
+  if (dateStr) {
+    [year, month, day] = dateStr.split('-');
+  } else {
+    const now = new Date();
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/New_York',
+      year: 'numeric', month: '2-digit', day: '2-digit'
+    });
+    const parts = formatter.formatToParts(now);
+    year = parts.find(p => p.type === 'year').value;
+    month = parts.find(p => p.type === 'month').value;
+    day = parts.find(p => p.type === 'day').value;
+  }
 
-  // Start: today 00:00 ET, End: today 23:59:59 ET
   const startET = new Date(`${year}-${month}-${day}T00:00:00`);
   const endET = new Date(`${year}-${month}-${day}T23:59:59`);
-
-  // Convert ET to UTC (ET is UTC-5 or UTC-4 depending on DST)
-  const etOffsetMs = getEasternOffsetMs(now);
-  const startUTC = new Date(startET.getTime() + etOffsetMs);
-  const endUTC = new Date(endET.getTime() + etOffsetMs);
-
-  return { startUTC, endUTC };
+  const etOffsetMs = getEasternOffsetMs(startET);
+  return {
+    startUTC: new Date(startET.getTime() + etOffsetMs),
+    endUTC: new Date(endET.getTime() + etOffsetMs)
+  };
 }
 
 function getEasternOffsetMs(date) {
@@ -36,8 +39,8 @@ function getEasternOffsetMs(date) {
   return utcDate - etDate;
 }
 
-async function listTodayTranscripts() {
-  const { startUTC, endUTC } = getTodayEasternBoundaries();
+async function listTodayTranscripts(dateStr) {
+  const { startUTC, endUTC } = getEasternDayBoundaries(dateStr);
   const transcripts = [];
   let cursor = null;
 

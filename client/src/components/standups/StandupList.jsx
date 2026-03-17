@@ -49,11 +49,9 @@ export default function StandupList() {
     <div style={{ maxWidth: 800, margin: '0 auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <h1 style={{ fontSize: 22, fontWeight: 700 }}>Standups</h1>
-        {isToday && (
-          <button onClick={sync} disabled={loading.sync} style={btnStyle(loading.sync)}>
-            {loading.sync ? 'Fetching...' : "Fetch Today's Standups"}
-          </button>
-        )}
+        <button onClick={() => sync(selectedDate)} disabled={loading.sync} style={btnStyle(loading.sync)}>
+          {loading.sync ? 'Fetching...' : isToday ? "Fetch Today's Standups" : `Fetch Standups for ${formatLabel(selectedDate)}`}
+        </button>
       </div>
 
       {/* Date navigator */}

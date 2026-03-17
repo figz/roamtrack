@@ -18,11 +18,11 @@ export function useStandups() {
     }
   }, [setStandups, setLoading, setError]);
 
-  const sync = useCallback(async () => {
+  const sync = useCallback(async (date) => {
     setLoading('sync', true);
     setError('sync', null);
     try {
-      await syncStandups();
+      await syncStandups(date);
       await fetchStandups();
     } catch (err) {
       setError('sync', err.response?.data?.error || err.message);
