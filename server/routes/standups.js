@@ -163,7 +163,7 @@ router.post('/:id/pull', async (req, res, next) => {
     );
     if (mapping?.youtrackProject) {
       try {
-        const issues = await ytService.getAllBoardIssues(mapping.youtrackProject);
+        const issues = await ytService.getIssuesByBoard(mapping.youtrackProject);
         numberMap = buildNumberMap(issues);
         console.log(`[pull] loaded ${issues.length} issues for number matching`);
       } catch (err) {
