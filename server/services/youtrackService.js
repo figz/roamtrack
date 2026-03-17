@@ -27,15 +27,30 @@ async function getIssuesByBoard(boardIdOrUrl) {
 
   let issues;
   try {
-    const q = sprintId
-      ? `Board: {${board.name}} Sprint: {${board.currentSprint.name}}`
-      : `Board: {${board.name}} #Unresolved`;
-    console.log(`[youtrack] querying issues: ${q}`);
-    const issuesRes = await ytClient.get('/issues', {
-      params: { fields: 'id,idReadable,summary,updated', query: q, $top: 500 }
-    });
-    issues = issuesRes.data;
-    console.log(`[youtrack] query returned ${issues.length} issues`);
+    if (sprintId) {
+      // Page through the sprint endpoint to get all issues
+      let skip = 0;
+      const pageSize = 100;
+      issues = [];
+      while (true) {
+        const page = await ytClient.get(`/agiles/${boardId}/sprints/${sprintId}/issues`, {
+          params: { fields: 'id,idReadable,summary,updated', $top: pageSize, $skip: skip }
+        });
+        const batch = page.data;
+        issues.push(...batch);
+        console.log(`[youtrack] sprint page skip=${skip} returned ${batch.length} issues (total so far: ${issues.length})`);
+        if (batch.length < pageSize) break;
+        skip += pageSize;
+      }
+    } else {
+      const q = `Board: {${board.name}} #Unresolved`;
+      console.log(`[youtrack] querying issues: ${q}`);
+      const issuesRes = await ytClient.get('/issues', {
+        params: { fields: 'id,idReadable,summary,updated', query: q, $top: 500 }
+      });
+      issues = issuesRes.data;
+      console.log(`[youtrack] board query returned ${issues.length} issues`);
+    }
   } catch (err) {
     console.error(`[youtrack] fetch error:`, err.response?.data || err.message);
     throw err;
