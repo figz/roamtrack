@@ -41,7 +41,7 @@ router.post('/ticket-links', async (req, res, next) => {
         itemId,
         itemType,
         ticketId,
-        ticketUrl: `${process.env.YOUTRACK_BASE_URL}/issue/${ticketId}`,
+        ticketUrl: `${(process.env.YOUTRACK_BASE_URL || '').replace(/\/api\/?$/, '')}/issue/${ticketId}`,
         linkType: 'manual'
       },
       { upsert: true, new: true }

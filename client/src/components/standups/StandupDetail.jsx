@@ -33,6 +33,7 @@ export default function StandupDetail() {
   const { linkTicket } = useYouTrack();
   const [pulling, setPulling] = useState(false);
   const [clearing, setClearing] = useState(false);
+  const [clearCount, setClearCount] = useState(0);
 
   useEffect(() => {
     async function load() {
@@ -81,6 +82,7 @@ export default function StandupDetail() {
       setDecisions([]);
       setTicketLinks([]);
       setSelectedStandup(s => ({ ...s, status: 'pending', pulledAt: null }));
+      setClearCount(c => c + 1);
     } catch (err) {
       setError('clear', err.response?.data?.error || err.message);
     } finally {
@@ -130,7 +132,7 @@ export default function StandupDetail() {
           <button onClick={handlePull} disabled={pulling} style={btnStyle(pulling)}>
             {pulling ? 'Pulling...' : 'Pull from Roam'}
           </button>
-          <UpdateButton standupId={id} />
+          <UpdateButton key={clearCount} standupId={id} />
           <button onClick={handleClear} disabled={clearing} style={clearBtnStyle(clearing)}>
             {clearing ? 'Clearing...' : 'Clear'}
           </button>
