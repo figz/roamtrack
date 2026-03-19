@@ -77,26 +77,15 @@ async function getIssue(ticketId) {
 async function findUserLoginByEmail(email) {
   if (!email) return null;
   try {
-    // Try the email username part as a login query (e.g. "joe.mock" from "joe.mock@company.com")
-    const usernamePart = email.split('@')[0];
     const res = await ytClient.get('/users', {
-      params: { query: usernamePart, fields: 'id,login,fullName,email', $top: 10 }
+      params: { query: `email: ${email}`, fields: 'id,login,fullName,email', $top: 5 }
     });
     const users = res.data;
-    console.log(`[findUserLoginByEmail] query="${usernamePart}", results:`, JSON.stringify(users));
+    console.log(`[findUserLoginByEmail] query="email: ${email}", results:`, JSON.stringify(users));
     if (!users.length) return null;
-
     const emailLower = email.trim().toLowerCase();
-    const usernameLower = usernamePart.toLowerCase();
-
-    // Prefer exact email match, then exact login match, then first result
-    const byEmail = users.find(u => (u.email || '').toLowerCase() === emailLower);
-    if (byEmail) return byEmail.login || null;
-
-    const byLogin = users.find(u => (u.login || '').toLowerCase() === usernameLower);
-    if (byLogin) return byLogin.login || null;
-
-    return users[0].login || null;
+    const exact = users.find(u => (u.email || '').toLowerCase() === emailLower);
+    return (exact || users[0]).login || null;
   } catch (err) {
     console.error(`[findUserLoginByEmail] error for "${email}":`, err.response?.data || err.message);
     return null;
