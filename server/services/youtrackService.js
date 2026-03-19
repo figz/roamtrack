@@ -76,20 +76,19 @@ async function getIssue(ticketId) {
 
 async function findUserLoginByEmail(email) {
   if (!email) return null;
+  // Try direct lookup by email username (often matches YouTrack login)
+  const usernamePart = email.split('@')[0];
   try {
-    const res = await ytClient.get('/users', {
-      params: { query: `email: ${email}`, fields: 'id,login,fullName,email', $top: 5 }
+    const res = await ytClient.get(`/users/${usernamePart}`, {
+      params: { fields: 'id,login,fullName,email' }
     });
-    const users = res.data;
-    console.log(`[findUserLoginByEmail] query="email: ${email}", results:`, JSON.stringify(users));
-    if (!users.length) return null;
-    const emailLower = email.trim().toLowerCase();
-    const exact = users.find(u => (u.email || '').toLowerCase() === emailLower);
-    return (exact || users[0]).login || null;
+    const user = res.data;
+    console.log(`[findUserLoginByEmail] direct lookup "${usernamePart}":`, JSON.stringify(user));
+    if (user?.login) return user.login;
   } catch (err) {
-    console.error(`[findUserLoginByEmail] error for "${email}":`, err.response?.data || err.message);
-    return null;
+    console.log(`[findUserLoginByEmail] direct lookup failed for "${usernamePart}":`, err.response?.status, err.response?.data?.error);
   }
+  return null;
 }
 
 async function postComment(ticketId, text) {
