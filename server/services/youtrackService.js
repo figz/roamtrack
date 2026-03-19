@@ -74,16 +74,36 @@ async function getIssue(ticketId) {
   return response.data;
 }
 
+// Cache all users for the duration of a request batch
+let _userCache = null;
+let _userCacheTime = 0;
+const USER_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+async function getAllUsers() {
+  const now = Date.now();
+  if (_userCache && now - _userCacheTime < USER_CACHE_TTL_MS) return _userCache;
+  const res = await ytClient.get('/users', {
+    params: { fields: 'id,login,fullName,email', $top: 500 }
+  });
+  _userCache = res.data || [];
+  _userCacheTime = now;
+  console.log(`[youtrack] loaded ${_userCache.length} users for email lookup`);
+  return _userCache;
+}
+
 async function findUserLoginByEmail(email) {
   if (!email) return null;
-  const usernamePart = email.split('@')[0];
   try {
-    const res = await ytClient.get(`/users/${usernamePart}`, {
-      params: { fields: 'id,login,fullName,email' }
-    });
-    if (res.data?.login) return res.data.login;
-  } catch {
-    // login not found by username part
+    const users = await getAllUsers();
+    const emailLower = email.trim().toLowerCase();
+    const match = users.find(u => (u.email || '').toLowerCase() === emailLower);
+    if (match) {
+      console.log(`[findUserLoginByEmail] matched "${email}" → login "${match.login}"`);
+      return match.login || null;
+    }
+    console.log(`[findUserLoginByEmail] no match for "${email}" among ${users.length} users`);
+  } catch (err) {
+    console.error(`[findUserLoginByEmail] error:`, err.response?.data || err.message);
   }
   return null;
 }
