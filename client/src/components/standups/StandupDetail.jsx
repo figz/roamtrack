@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { DragDropContext } from '@hello-pangea/dnd';
 import useAppStore from '../../store/useAppStore';
-import { getStandup, pullStandup } from '../../api/standups';
+import { getStandup, pullStandup, clearStandup } from '../../api/standups';
 import { useYouTrack } from '../../hooks/useYouTrack';
 import ActionItemList from '../items/ActionItemList';
 import DecisionList from '../items/DecisionList';
@@ -32,6 +32,7 @@ export default function StandupDetail() {
   }, [selectedStandup, settings]);
   const { linkTicket } = useYouTrack();
   const [pulling, setPulling] = useState(false);
+  const [clearing, setClearing] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -68,6 +69,22 @@ export default function StandupDetail() {
       setError('pull', err.response?.data?.error || err.message);
     } finally {
       setPulling(false);
+    }
+  }
+
+  async function handleClear() {
+    if (!window.confirm('Clear all action items, decisions, and ticket links for this standup?')) return;
+    setClearing(true);
+    try {
+      await clearStandup(id);
+      setActionItems([]);
+      setDecisions([]);
+      setTicketLinks([]);
+      setSelectedStandup(s => ({ ...s, status: 'pending', pulledAt: null }));
+    } catch (err) {
+      setError('clear', err.response?.data?.error || err.message);
+    } finally {
+      setClearing(false);
     }
   }
 
@@ -114,6 +131,9 @@ export default function StandupDetail() {
             {pulling ? 'Pulling...' : 'Pull from Roam'}
           </button>
           <UpdateButton standupId={id} />
+          <button onClick={handleClear} disabled={clearing} style={clearBtnStyle(clearing)}>
+            {clearing ? 'Clearing...' : 'Clear'}
+          </button>
         </div>
 
         {errors.pull && <div style={errorStyle}>{errors.pull}</div>}
@@ -141,6 +161,15 @@ const btnStyle = (disabled) => ({
   background: disabled ? '#bdbdbd' : '#3f51b5',
   color: '#fff', border: 'none', borderRadius: 6,
   cursor: disabled ? 'not-allowed' : 'pointer', fontSize: 14, fontWeight: 600
+});
+const clearBtnStyle = (disabled) => ({
+  padding: '8px 16px',
+  background: disabled ? '#bdbdbd' : '#fff',
+  color: disabled ? '#fff' : '#c62828',
+  border: '1px solid #c62828',
+  borderRadius: 6,
+  cursor: disabled ? 'not-allowed' : 'pointer',
+  fontSize: 14, fontWeight: 600
 });
 const errorStyle = {
   background: '#ffebee', color: '#c62828',

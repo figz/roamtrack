@@ -264,4 +264,25 @@ router.post('/:id/decisions', async (req, res, next) => {
   }
 });
 
+// POST /api/standups/:id/clear
+router.post('/:id/clear', async (req, res, next) => {
+  try {
+    const standup = await Standup.findById(req.params.id);
+    if (!standup) return res.status(404).json({ error: 'Standup not found' });
+
+    const items = await ActionItem.find({ standupId: standup._id });
+    const decisions = await Decision.find({ standupId: standup._id });
+    const allIds = [...items, ...decisions].map(i => i._id);
+
+    if (allIds.length) await TicketLink.deleteMany({ itemId: { $in: allIds } });
+    await ActionItem.deleteMany({ standupId: standup._id });
+    await Decision.deleteMany({ standupId: standup._id });
+    await Standup.findByIdAndUpdate(standup._id, { status: 'pending', pulledAt: null });
+
+    res.json({ cleared: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
 module.exports = router;
