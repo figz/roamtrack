@@ -91,13 +91,16 @@ router.post('/update', async (req, res, next) => {
       let assigneePart = '';
       if (link.itemType === 'ActionItem' && itemEntry.item.assignee) {
         const assigneeName = itemEntry.item.assignee.trim().toLowerCase();
+        console.log(`[update] assignee: "${assigneeName}", participants:`, (standup.participants || []).map(p => `${p.name}|${p.email}`));
         const participant = (standup.participants || []).find(p =>
           (p.name || '').trim().toLowerCase().includes(assigneeName) ||
           assigneeName.includes((p.name || '').trim().toLowerCase())
         );
+        console.log(`[update] matched participant:`, participant);
         const login = participant?.email
           ? await ytService.findUserLoginByEmail(participant.email)
           : null;
+        console.log(`[update] YouTrack login for "${participant?.email}":`, login);
         assigneePart = login
           ? `\nAssignee: @${login}`
           : `\nAssignee: ${itemEntry.item.assignee}`;
