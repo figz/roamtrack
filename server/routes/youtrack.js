@@ -98,7 +98,7 @@ router.post('/update', async (req, res, next) => {
         );
         console.log(`[update] matched participant:`, participant);
         const login = participant?.email
-          ? await ytService.findUserLoginByEmail(participant.email)
+          ? await ytService.findUserLoginByEmail(participant.email, participant.user)
           : null;
         console.log(`[update] YouTrack login for "${participant?.email}":`, login);
         assigneePart = login

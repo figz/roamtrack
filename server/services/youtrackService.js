@@ -74,19 +74,25 @@ async function getIssue(ticketId) {
   return response.data;
 }
 
-async function findUserLoginByEmail(email) {
+async function findUserLoginByEmail(email, roamUserId) {
   if (!email) return null;
-  // Try direct lookup by email username (often matches YouTrack login)
-  const usernamePart = email.split('@')[0];
-  try {
-    const res = await ytClient.get(`/users/${usernamePart}`, {
-      params: { fields: 'id,login,fullName,email' }
-    });
-    const user = res.data;
-    console.log(`[findUserLoginByEmail] direct lookup "${usernamePart}":`, JSON.stringify(user));
-    if (user?.login) return user.login;
-  } catch (err) {
-    console.log(`[findUserLoginByEmail] direct lookup failed for "${usernamePart}":`, err.response?.status, err.response?.data?.error);
+  const candidates = [
+    roamUserId,           // Hub user ID e.g. U-d62efbc5-...
+    email,                // full email as login
+    email.split('@')[0],  // joe.mock
+  ].filter(Boolean);
+
+  for (const candidate of candidates) {
+    try {
+      const res = await ytClient.get(`/users/${encodeURIComponent(candidate)}`, {
+        params: { fields: 'id,login,fullName,email' }
+      });
+      const user = res.data;
+      console.log(`[findUserLoginByEmail] lookup "${candidate}":`, JSON.stringify(user));
+      if (user?.login) return user.login;
+    } catch (err) {
+      console.log(`[findUserLoginByEmail] "${candidate}" failed:`, err.response?.status);
+    }
   }
   return null;
 }
