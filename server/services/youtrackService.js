@@ -82,10 +82,21 @@ const USER_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 async function getAllUsers() {
   const now = Date.now();
   if (_userCache && now - _userCacheTime < USER_CACHE_TTL_MS) return _userCache;
-  const res = await ytClient.get('/users', {
-    params: { fields: 'id,login,fullName,email', $top: 500 }
-  });
-  _userCache = res.data || [];
+
+  const users = [];
+  let skip = 0;
+  const pageSize = 500;
+  while (true) {
+    const res = await ytClient.get('/users', {
+      params: { fields: 'id,login,fullName,email', $top: pageSize, $skip: skip }
+    });
+    const batch = res.data || [];
+    users.push(...batch);
+    if (batch.length < pageSize) break;
+    skip += pageSize;
+  }
+
+  _userCache = users;
   _userCacheTime = now;
   console.log(`[youtrack] loaded ${_userCache.length} users for email lookup`);
   return _userCache;
