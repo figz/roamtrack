@@ -81,12 +81,13 @@ async function findUserLoginByEmail(email) {
       params: { query: email, fields: 'id,login,fullName,email', $top: 5 }
     });
     const users = res.data;
+    console.log(`[findUserLoginByEmail] query="${email}", results:`, JSON.stringify(users));
     if (!users.length) return null;
-    // Prefer exact email match
     const emailLower = email.trim().toLowerCase();
     const exact = users.find(u => (u.email || '').toLowerCase() === emailLower);
     return (exact || users[0]).login || null;
-  } catch {
+  } catch (err) {
+    console.error(`[findUserLoginByEmail] error for "${email}":`, err.response?.data || err.message);
     return null;
   }
 }
