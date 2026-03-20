@@ -150,6 +150,9 @@ export default function StandupDetail() {
           </div>
         </div>
       </div>
+      <div style={{ marginTop: 40, color: '#bdbdbd', fontSize: 11 }}>
+        Transcript ID: {selectedStandup.roamTranscriptId || '—'}
+      </div>
     </DragDropContext>
   );
 }
